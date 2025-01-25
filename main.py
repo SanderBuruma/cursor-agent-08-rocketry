@@ -15,6 +15,18 @@ class CelestialBody:
         radius_meters = self.radius * 1000  # Convert km to m
         return 6.67430e-11 * self.mass / (radius_meters ** 2)
       
+    def gravity_at_distance(self, distance_km: float) -> float:
+        """Calculate gravitational acceleration at a given distance from the body's center.
+        
+        Args:
+            distance_km: Distance from center in kilometers
+            
+        Returns:
+            Gravitational acceleration in m/s²
+        """
+        distance_meters = distance_km * 1000  # Convert km to m
+        return 6.67430e-11 * self.mass / (distance_meters ** 2)
+      
     @property
     def escape_velocity(self):
         radius_meters = self.radius * 1000  # Convert km to m
