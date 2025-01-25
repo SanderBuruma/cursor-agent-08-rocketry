@@ -8,12 +8,15 @@ A Python program that calculates and displays key properties of celestial bodies
 - **Radius**: kilometers (km) for input/display, converted to meters (m) for calculations
 - **Surface Gravity**: meters per second squared (m/s²)
 - **Escape Velocity**: kilometers per second (km/s) for display, calculated in m/s internally
+- **Orbital Velocity**: kilometers per second (km/s) for display, calculated in m/s internally
+- **Distance/Altitude**: kilometers (km) for input
 
 ## Implementation Details
 
 - Uses gravitational constant G = 6.67430e-11 m³/kg·s²
 - Surface gravity calculated as g = GM/r²
 - Escape velocity calculated as v = √(2GM/r)
+- Orbital velocity calculated as v = √(GM/r)
 - Rich library used for formatted table output
 
 ## Development Notes
