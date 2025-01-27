@@ -77,14 +77,14 @@ class Visualizer:
         radius_px = max(2, int(float(radius_m * self.zoom)))
         
         # Draw orbit circle if body has a parent
-        if body.parent_body:
-            parent_x, parent_y = self.get_absolute_position(body.parent_body)
-            parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
-            orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
-            if orbit_radius > 0:  # Only draw if visible
-                pygame.draw.circle(self.screen, (50, 50, 50), 
-                                 (parent_screen_x, parent_screen_y), 
-                                 orbit_radius, 1)
+        # if body.parent_body:
+        #     parent_x, parent_y = self.get_absolute_position(body.parent_body)
+        #     parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
+        #     orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
+        #     if orbit_radius > 0:  # Only draw if visible
+        #         pygame.draw.circle(self.screen, (50, 50, 50), 
+        #                          (parent_screen_x, parent_screen_y), 
+        #                          orbit_radius, 1)
         
         # Draw the body if it's on screen
         if 0 <= screen_x <= WINDOW_SIZE[0] and 0 <= screen_y <= WINDOW_SIZE[1]:
@@ -105,6 +105,7 @@ class Visualizer:
                 ]
                 if body.parent_body:
                     info.append(f"Distance from {body.parent_body.name}: {body.distance_from_parent_km:,.0f} km")
+                    info.append(f"Orbital Velocity: {body.current_orbital_velocity/Decimal('1000'):.1f} km/s")
                 
                 y_offset = screen_y + radius_px + 5
                 for line in info:

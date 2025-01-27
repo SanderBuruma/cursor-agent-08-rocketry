@@ -82,6 +82,14 @@ class CelestialBody:
         radius_meters = self.radius * Decimal('1000')  # Convert km to m
         return (Decimal('2') * self.G * self.mass / radius_meters).sqrt()
         
+    @property
+    def current_orbital_velocity(self) -> Decimal:
+        """Calculate the orbital velocity at the current distance from parent body.
+        Returns velocity in m/s, or 0 if this is the sun (no parent)."""
+        if not self.parent_body:
+            return Decimal('0')
+        return (self.G * self.parent_body.mass / (self.distance_from_parent_km * Decimal('1000'))).sqrt()
+        
     def __str__(self):
         parent_info = f", orbiting {self.parent_body.name}" if self.parent_body else ""
         return f"{self.name} ({self.mass:.2e} kg, {self.radius} km{parent_info})"
