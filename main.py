@@ -33,9 +33,10 @@ class CelestialBody:
             return (Decimal('0'), Decimal('0'))
             
         distance_m = self.distance_from_parent_km * Decimal('1000')
-        # Use Decimal's own trig functions for higher precision
-        x = distance_m * self._orbit_angle.cos()
-        y = distance_m * self._orbit_angle.sin()
+        # Convert to float for trig functions, then back to Decimal
+        angle_float = float(self._orbit_angle)
+        x = distance_m * Decimal(str(math.cos(angle_float)))
+        y = distance_m * Decimal(str(math.sin(angle_float)))
         return (x, y)
         
     def update_position(self, angle_radians: Decimal):
@@ -209,6 +210,7 @@ def main():
         )
     
     console.print(table)
+    return bodies
     
     
 if __name__ == "__main__":
