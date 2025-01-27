@@ -142,7 +142,8 @@ class Visualizer:
                     y_offset += FONT_SIZE + 2
     
     def find_hovered_body(self, mouse_pos):
-        """Find body closest to mouse cursor within 5 pixels"""
+        """Find body that the mouse is hovering over.
+        Shows info if mouse is within 5 pixels of center or within the body's radius."""
         mouse_x, mouse_y = mouse_pos
         closest_body = None
         closest_distance_px = float('inf')
@@ -151,6 +152,10 @@ class Visualizer:
             # Get screen position of body
             body_x, body_y = self.get_absolute_position(body)
             screen_x, screen_y = self.world_to_screen(body_x, body_y)
+            
+            # Calculate radius in pixels
+            radius_m = body.radius * Decimal('1000')
+            radius_px = max(2, int(float(radius_m * self.zoom)))
             
             # Calculate distance in pixels
             dx = screen_x - mouse_x
@@ -162,8 +167,12 @@ class Visualizer:
                 closest_distance_px = distance_px
                 closest_body = body
         
-        # Return closest body if within 5 pixels
-        return closest_body if closest_distance_px <= 5 else None
+        # Return closest body if within 5 pixels of center or within body's radius
+        if closest_body:
+            radius_m = closest_body.radius * Decimal('1000')
+            radius_px = max(2, int(float(radius_m * self.zoom)))
+            return closest_body if closest_distance_px <= max(5, radius_px) else None
+        return None
     
     def adjust_zoom(self, steps: int):
         """Adjust zoom by a number of steps (positive = zoom in, negative = zoom out)
