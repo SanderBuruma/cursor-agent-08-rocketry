@@ -29,6 +29,10 @@ class Visualizer:
         self.last_mouse_pos = None
         self.hovered_body = None
         
+        # Time control
+        self.time_scale = Decimal('1')  # 1 second real time = 1 second simulation time
+        self.paused = False
+        
     def world_to_screen(self, x: Decimal, y: Decimal) -> tuple[int, int]:
         """Convert world coordinates (meters) to screen coordinates (pixels)"""
         screen_x = int(float(x * self.zoom)) + WINDOW_SIZE[0]//2 + self.camera_x
@@ -48,6 +52,9 @@ class Visualizer:
             "Mouse Wheel: Zoom in/out",
             "Left Click + Drag: Pan view",
             "Hover: Show body info",
+            "Space: Pause/Resume",
+            "+ / -: Speed up/slow down time (10x)",
+            f"Time scale: {float(self.time_scale):.1e}x",
             "ESC: Quit"
         ]
         y = 10
@@ -189,9 +196,34 @@ class Visualizer:
         self.camera_x += mouse_x - new_screen_x
         self.camera_y += mouse_y - new_screen_y
     
+    def update_orbits(self, dt_seconds: float):
+        """Update orbital positions based on time elapsed"""
+        if self.paused:
+            return
+            
+        dt = Decimal(str(dt_seconds)) * self.time_scale
+        
+        for body in self.bodies:
+            if body.parent_body:  # Only update bodies that orbit something
+                # Calculate angular velocity (radians per second)
+                mu = body.parent_body.G * body.parent_body.mass
+                r = body.distance_from_parent_km * Decimal('1000')  # Convert to meters
+                angular_velocity = (mu / (r * r * r)).sqrt()
+                
+                # Update orbit angle
+                angle_change = angular_velocity * dt
+                new_angle = body._orbit_angle + angle_change
+                body.update_position(new_angle)
+    
     def run(self):
         running = True
+        last_time = pygame.time.get_ticks() / 1000.0  # Convert to seconds
+        
         while running:
+            current_time = pygame.time.get_ticks() / 1000.0
+            dt = current_time - last_time
+            last_time = current_time
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (
                     event.type == pygame.KEYDOWN and 
@@ -223,6 +255,17 @@ class Visualizer:
                     
                     # Update hovered body
                     self.hovered_body = self.find_hovered_body(event.pos)
+                
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.paused = not self.paused
+                    elif event.key == pygame.K_UP or event.key == pygame.K_UP:
+                        self.time_scale *= Decimal('10')
+                    elif event.key == pygame.K_DOWN or event.key == pygame.K_DOWN:
+                        self.time_scale /= Decimal('10')
+            
+            # Update orbital positions
+            self.update_orbits(dt)
             
             # Clear screen
             self.screen.fill(BLACK)
