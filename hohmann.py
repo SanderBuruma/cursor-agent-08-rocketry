@@ -44,18 +44,18 @@ def main_hohmann():
     bodies = main()
     
     # Find Phobos and Deimos
-    phobos = next(b for b in bodies if b.name == "Phobos")
-    deimos = next(b for b in bodies if b.name == "Deimos")
+    cb1 = next(b for b in bodies if b.name == "Mars")
+    cb2 = next(b for b in bodies if b.name == "Earth")
     
     # Calculate phase angle for transfer
-    phase_angle = calculate_hohmann_phase_angle(phobos, deimos)
+    phase_angle = calculate_hohmann_phase_angle(cb1, cb2)
     
     # Convert to degrees for easier understanding
     phase_degrees = math.degrees(phase_angle)
     
-    print(f"For a Hohmann transfer from Phobos to Deimos:")
+    print(f"For a Hohmann transfer from {cb1.name} to {cb2.name}:")
     print(f"Phase angle needed: {phase_degrees:.2f}°")
-    print(f"This means Deimos should be {phase_degrees:.2f}° ahead of Phobos")
+    print(f"This means {cb2.name} should be {phase_degrees:.2f}° ahead of {cb1.name}")
     print(f"when starting the transfer.")
 
 if __name__ == "__main__":
