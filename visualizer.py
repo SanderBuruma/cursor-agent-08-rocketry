@@ -22,7 +22,8 @@ class Visualizer:
         self.bodies = bodies
         self.camera_x = 0
         self.camera_y = 0
-        self.zoom = Decimal('2e-10')  # Initial zoom to see most of inner solar system
+        self.zoom_level = 0  # Base zoom level
+        self.zoom = Decimal('2e-10') * Decimal('1.2') ** self.zoom_level  # Initial zoom
         self.dragging = False
         self.last_mouse_pos = None
         self.hovered_body = None
@@ -71,16 +72,16 @@ class Visualizer:
         x, y = self.get_absolute_position(body)
         screen_x, screen_y = self.world_to_screen(x, y)
         
-        # Calculate radius in pixels (minimum 2 pixels, maximum 50)
+        # Calculate radius in pixels (minimum 2 pixels, no maximum)
         radius_m = body.radius * Decimal('1000')
-        radius_px = max(2, min(50, int(float(radius_m * self.zoom))))
+        radius_px = max(2, int(float(radius_m * self.zoom)))
         
         # Draw orbit circle if body has a parent
         if body.parent_body:
             parent_x, parent_y = self.get_absolute_position(body.parent_body)
             parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
             orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
-            if 0 < orbit_radius < max(WINDOW_SIZE):  # Only draw if visible and not too large
+            if orbit_radius > 0:  # Only draw if visible
                 pygame.draw.circle(self.screen, (50, 50, 50), 
                                  (parent_screen_x, parent_screen_y), 
                                  orbit_radius, 1)
@@ -112,21 +113,43 @@ class Visualizer:
                     y_offset += FONT_SIZE + 2
     
     def find_hovered_body(self, mouse_pos):
-        """Find body under mouse cursor"""
+        """Find body closest to mouse cursor within 5 pixels"""
         mouse_x, mouse_y = mouse_pos
-        world_x, world_y = self.screen_to_world(mouse_x, mouse_y)
+        closest_body = None
+        closest_distance_px = float('inf')
         
         for body in self.bodies:
+            # Get screen position of body
             body_x, body_y = self.get_absolute_position(body)
-            dx = body_x - world_x
-            dy = body_y - world_y
-            distance = (dx * dx + dy * dy).sqrt()
+            screen_x, screen_y = self.world_to_screen(body_x, body_y)
             
-            # Check if mouse is within body's radius (with some padding)
-            radius_m = body.radius * Decimal('1000')
-            if distance < radius_m * Decimal('2'):
-                return body
-        return None
+            # Calculate distance in pixels
+            dx = screen_x - mouse_x
+            dy = screen_y - mouse_y
+            distance_px = (dx * dx + dy * dy) ** 0.5
+            
+            # Update closest body if this one is closer
+            if distance_px < closest_distance_px:
+                closest_distance_px = distance_px
+                closest_body = body
+        
+        # Return closest body if within 5 pixels
+        return closest_body if closest_distance_px <= 5 else None
+    
+    def adjust_zoom(self, steps: int):
+        """Adjust zoom by a number of steps (positive = zoom in, negative = zoom out)
+        Each step is a 20% change"""
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        world_x, world_y = self.screen_to_world(mouse_x, mouse_y)
+        
+        self.zoom_level += steps
+        self.zoom = Decimal('2e-10') * Decimal('1.2') ** self.zoom_level
+        
+        # Adjust camera to keep mouse position fixed
+        new_screen_x = int(float(world_x * self.zoom)) + WINDOW_SIZE[0]//2 + self.camera_x
+        new_screen_y = int(float(world_y * self.zoom)) + WINDOW_SIZE[1]//2 + self.camera_y
+        self.camera_x += mouse_x - new_screen_x
+        self.camera_y += mouse_y - new_screen_y
     
     def run(self):
         running = True
@@ -143,9 +166,9 @@ class Visualizer:
                         self.dragging = True
                         self.last_mouse_pos = event.pos
                     elif event.button == 4:  # Mouse wheel up
-                        self.zoom *= Decimal('1.1')
+                        self.adjust_zoom(1)
                     elif event.button == 5:  # Mouse wheel down
-                        self.zoom *= Decimal('0.9')
+                        self.adjust_zoom(-1)
                 
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:  # Left click
