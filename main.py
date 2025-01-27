@@ -104,41 +104,82 @@ def main():
     
     # Mercury and Venus have no moons
     mercury = CelestialBody("Mercury", Decimal('3.285e23'), Decimal('2439.7'), (169, 169, 169), sun, Decimal('57.9e6'))
+    mercury._orbit_angle = Decimal('4.16')  # ~238 degrees
+    
     venus = CelestialBody("Venus", Decimal('4.867e24'), Decimal('6051.8'), (255, 198, 73), sun, Decimal('108.2e6'))
+    venus._orbit_angle = Decimal('5.67')  # ~325 degrees
     
     # Earth and Moon
     earth = CelestialBody("Earth", Decimal('5.972e24'), Decimal('6371.0'), (0, 0, 255), sun, Decimal('149.6e6'))
+    earth._orbit_angle = Decimal('1.57')  # ~90 degrees
+    
     moon = CelestialBody("Moon", Decimal('7.348e22'), Decimal('1737.4'), (128, 128, 128), earth, Decimal('384400'))
+    moon._orbit_angle = Decimal('2.09')  # ~120 degrees relative to Earth
     
     # Mars and its moons
     mars = CelestialBody("Mars", Decimal('6.39e23'), Decimal('3389.5'), (255, 0, 0), sun, Decimal('227.9e6'))
+    mars._orbit_angle = Decimal('3.49')  # ~200 degrees
+    
     phobos = CelestialBody("Phobos", Decimal('1.06e16'), Decimal('11.267'), (169, 169, 169), mars, Decimal('9377'))
+    phobos._orbit_angle = Decimal('1.05')  # ~60 degrees relative to Mars
+    
     deimos = CelestialBody("Deimos", Decimal('1.48e15'), Decimal('6.2'), (169, 169, 169), mars, Decimal('23460'))
+    deimos._orbit_angle = Decimal('4.19')  # ~240 degrees relative to Mars
     
     # Jupiter and its major moons
     jupiter = CelestialBody("Jupiter", Decimal('1.898e27'), Decimal('69911.0'), (255, 165, 0), sun, Decimal('778.5e6'))
+    jupiter._orbit_angle = Decimal('2.79')  # ~160 degrees
+    
     io = CelestialBody("Io", Decimal('8.932e22'), Decimal('1821.6'), (255, 255, 150), jupiter, Decimal('421700'))
+    io._orbit_angle = Decimal('0.52')  # ~30 degrees relative to Jupiter
+    
     europa = CelestialBody("Europa", Decimal('4.800e22'), Decimal('1560.8'), (255, 220, 200), jupiter, Decimal('671100'))
+    europa._orbit_angle = Decimal('2.09')  # ~120 degrees relative to Jupiter
+    
     ganymede = CelestialBody("Ganymede", Decimal('1.482e23'), Decimal('2634.1'), (169, 169, 169), jupiter, Decimal('1070400'))
+    ganymede._orbit_angle = Decimal('3.66')  # ~210 degrees relative to Jupiter
+    
     callisto = CelestialBody("Callisto", Decimal('1.076e23'), Decimal('2410.3'), (128, 128, 128), jupiter, Decimal('1882700'))
+    callisto._orbit_angle = Decimal('5.24')  # ~300 degrees relative to Jupiter
     
     # Saturn and its major moons
     saturn = CelestialBody("Saturn", Decimal('5.683e26'), Decimal('58232.0'), (238, 232, 205), sun, Decimal('1.434e9'))
+    saturn._orbit_angle = Decimal('4.54')  # ~260 degrees
+    
     titan = CelestialBody("Titan", Decimal('1.345e23'), Decimal('2574.73'), (255, 200, 100), saturn, Decimal('1221870'))
+    titan._orbit_angle = Decimal('1.57')  # ~90 degrees relative to Saturn
+    
     rhea = CelestialBody("Rhea", Decimal('2.307e21'), Decimal('763.8'), (200, 200, 200), saturn, Decimal('527108'))
+    rhea._orbit_angle = Decimal('3.14')  # ~180 degrees relative to Saturn
+    
     iapetus = CelestialBody("Iapetus", Decimal('1.806e21'), Decimal('734.5'), (200, 200, 200), saturn, Decimal('3560820'))
+    iapetus._orbit_angle = Decimal('4.71')  # ~270 degrees relative to Saturn
+    
     enceladus = CelestialBody("Enceladus", Decimal('1.080e20'), Decimal('252.1'), (255, 255, 255), saturn, Decimal('237948'))
+    enceladus._orbit_angle = Decimal('0.79')  # ~45 degrees relative to Saturn
     
     # Uranus and its major moons
     uranus = CelestialBody("Uranus", Decimal('8.681e25'), Decimal('25362.0'), (173, 216, 230), sun, Decimal('2.871e9'))
+    uranus._orbit_angle = Decimal('5.93')  # ~340 degrees
+    
     titania = CelestialBody("Titania", Decimal('3.527e21'), Decimal('788.9'), (169, 169, 169), uranus, Decimal('435910'))
+    titania._orbit_angle = Decimal('2.36')  # ~135 degrees relative to Uranus
+    
     oberon = CelestialBody("Oberon", Decimal('3.014e21'), Decimal('761.4'), (169, 169, 169), uranus, Decimal('583520'))
+    oberon._orbit_angle = Decimal('3.93')  # ~225 degrees relative to Uranus
+    
     miranda = CelestialBody("Miranda", Decimal('6.59e19'), Decimal('235.8'), (169, 169, 169), uranus, Decimal('129390'))
+    miranda._orbit_angle = Decimal('5.50')  # ~315 degrees relative to Uranus
     
     # Neptune and its major moons
     neptune = CelestialBody("Neptune", Decimal('1.024e26'), Decimal('24622.0'), (0, 0, 139), sun, Decimal('4.495e9'))
+    neptune._orbit_angle = Decimal('1.05')  # ~60 degrees
+    
     triton = CelestialBody("Triton", Decimal('2.139e22'), Decimal('1353.4'), (200, 200, 200), neptune, Decimal('354759'))
+    triton._orbit_angle = Decimal('1.83')  # ~105 degrees relative to Neptune
+    
     naiad = CelestialBody("Naiad", Decimal('1.9e17'), Decimal('33.0'), (169, 169, 169), neptune, Decimal('48227'))
+    naiad._orbit_angle = Decimal('4.45')  # ~255 degrees relative to Neptune
     
     bodies = [
         sun,
