@@ -2,6 +2,7 @@ import pygame
 import sys
 from decimal import Decimal
 from main import CelestialBody, main
+import math
 
 # Initialize Pygame
 pygame.init()
@@ -76,22 +77,41 @@ class Visualizer:
         radius_m = body.radius * Decimal('1000')
         radius_px = max(2, int(float(radius_m * self.zoom)))
         
-        # Draw orbit circle if body has a parent
+        # Draw orbit circle/arc if body has a parent
         if body.parent_body:
             parent_x, parent_y = self.get_absolute_position(body.parent_body)
             parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
             orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
             
-            # Only draw orbit if:
-            # 1. The orbit is visible (radius > 0)
-            # 2. The orbit isn't too large to draw efficiently (< 20000 pixels)
-            # 3. The parent body is near the screen (to avoid drawing huge circles for distant bodies)
-            if (0 < orbit_radius < 20000 and
+            # Only draw orbit if parent is near screen and orbit is visible
+            if (0 < orbit_radius and
                 -orbit_radius <= parent_screen_x <= WINDOW_SIZE[0] + orbit_radius and
                 -orbit_radius <= parent_screen_y <= WINDOW_SIZE[1] + orbit_radius):
-                pygame.draw.circle(self.screen, (50, 50, 50), 
-                                 (parent_screen_x, parent_screen_y), 
-                                 orbit_radius, 1)
+                
+                if orbit_radius < 20000:
+                    # Draw full circle for smaller orbits
+                    pygame.draw.circle(self.screen, (50, 50, 50), 
+                                     (parent_screen_x, parent_screen_y), 
+                                     orbit_radius, 1)
+                else:
+                    # For large orbits, draw a line segment tangent to the orbit
+                    # Calculate angle to current position relative to parent
+                    dx = screen_x - parent_screen_x
+                    dy = screen_y - parent_screen_y
+                    current_angle = math.atan2(dy, dx)
+                    
+                    # Calculate points for line segment perpendicular to radius
+                    # Use a fixed length of 1200 pixels for the line
+                    line_length = 1200
+                    tangent_angle = current_angle + math.pi/2  # 90 degrees offset for tangent
+                    start_x = screen_x - math.cos(tangent_angle) * line_length/2
+                    start_y = screen_y - math.sin(tangent_angle) * line_length/2
+                    end_x = screen_x + math.cos(tangent_angle) * line_length/2
+                    end_y = screen_y + math.sin(tangent_angle) * line_length/2
+                    
+                    pygame.draw.line(self.screen, (50, 50, 50),
+                                   (int(start_x), int(start_y)),
+                                   (int(end_x), int(end_y)), 1)
         
         # Draw the body if any part of it is visible on screen
         if (-radius_px <= screen_x <= WINDOW_SIZE[0] + radius_px and 
