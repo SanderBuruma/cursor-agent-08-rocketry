@@ -77,14 +77,21 @@ class Visualizer:
         radius_px = max(2, int(float(radius_m * self.zoom)))
         
         # Draw orbit circle if body has a parent
-        # if body.parent_body:
-        #     parent_x, parent_y = self.get_absolute_position(body.parent_body)
-        #     parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
-        #     orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
-        #     if orbit_radius > 0:  # Only draw if visible
-        #         pygame.draw.circle(self.screen, (50, 50, 50), 
-        #                          (parent_screen_x, parent_screen_y), 
-        #                          orbit_radius, 1)
+        if body.parent_body:
+            parent_x, parent_y = self.get_absolute_position(body.parent_body)
+            parent_screen_x, parent_screen_y = self.world_to_screen(parent_x, parent_y)
+            orbit_radius = int(float(body.distance_from_parent_km * 1000 * self.zoom))
+            
+            # Only draw orbit if:
+            # 1. The orbit is visible (radius > 0)
+            # 2. The orbit isn't too large to draw efficiently (< 20000 pixels)
+            # 3. The parent body is near the screen (to avoid drawing huge circles for distant bodies)
+            if (0 < orbit_radius < 20000 and
+                -orbit_radius <= parent_screen_x <= WINDOW_SIZE[0] + orbit_radius and
+                -orbit_radius <= parent_screen_y <= WINDOW_SIZE[1] + orbit_radius):
+                pygame.draw.circle(self.screen, (50, 50, 50), 
+                                 (parent_screen_x, parent_screen_y), 
+                                 orbit_radius, 1)
         
         # Draw the body if any part of it is visible on screen
         if (-radius_px <= screen_x <= WINDOW_SIZE[0] + radius_px and 
