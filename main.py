@@ -139,6 +139,19 @@ def main():
     deimos = CelestialBody("Deimos", Decimal('1.48e15'), Decimal('6.2'), (169, 169, 169), mars, Decimal('23460'))
     deimos._orbit_angle = Decimal('4.19')  # ~240 degrees relative to Mars
     
+    # Asteroid Belt Objects
+    ceres = CelestialBody("Ceres", Decimal('9.393e20'), Decimal('469.7'), (190, 190, 190), sun, Decimal('413.7e6'))
+    ceres._orbit_angle = Decimal('2.1')
+    
+    vesta = CelestialBody("Vesta", Decimal('2.59e20'), Decimal('262.7'), (180, 180, 170), sun, Decimal('353.3e6'))
+    vesta._orbit_angle = Decimal('3.3')
+    
+    pallas = CelestialBody("Pallas", Decimal('2.11e20'), Decimal('256'), (180, 180, 170), sun, Decimal('414.7e6'))
+    pallas._orbit_angle = Decimal('4.5')
+    
+    hygiea = CelestialBody("Hygiea", Decimal('8.32e19'), Decimal('217'), (170, 170, 170), sun, Decimal('470.3e6'))
+    hygiea._orbit_angle = Decimal('5.7')
+    
     # Jupiter and its major moons
     jupiter = CelestialBody("Jupiter", Decimal('1.898e27'), Decimal('69911.0'), (255, 165, 0), sun, Decimal('778.5e6'))
     jupiter._orbit_angle = Decimal('2.79')  # ~160 degrees
@@ -154,6 +167,12 @@ def main():
     
     callisto = CelestialBody("Callisto", Decimal('1.076e23'), Decimal('2410.3'), (128, 128, 128), jupiter, Decimal('1882700'))
     callisto._orbit_angle = Decimal('5.24')  # ~300 degrees relative to Jupiter
+    
+    amalthea = CelestialBody("Amalthea", Decimal('2.08e18'), Decimal('83.5'), (255, 100, 100), jupiter, Decimal('181366'))
+    amalthea._orbit_angle = Decimal('1.3')
+    
+    thebe = CelestialBody("Thebe", Decimal('4.3e17'), Decimal('49.3'), (200, 150, 150), jupiter, Decimal('221889'))
+    thebe._orbit_angle = Decimal('2.8')
     
     # Saturn and its major moons
     saturn = CelestialBody("Saturn", Decimal('5.683e26'), Decimal('58232.0'), (238, 232, 205), sun, Decimal('1.434e9'))
@@ -171,6 +190,15 @@ def main():
     enceladus = CelestialBody("Enceladus", Decimal('1.080e20'), Decimal('252.1'), (255, 255, 255), saturn, Decimal('237948'))
     enceladus._orbit_angle = Decimal('0.79')  # ~45 degrees relative to Saturn
     
+    mimas = CelestialBody("Mimas", Decimal('3.7e19'), Decimal('198.2'), (200, 200, 200), saturn, Decimal('185539'))
+    mimas._orbit_angle = Decimal('2.4')
+    
+    tethys = CelestialBody("Tethys", Decimal('6.17e20'), Decimal('531.1'), (200, 200, 200), saturn, Decimal('294619'))
+    tethys._orbit_angle = Decimal('3.9')
+    
+    dione = CelestialBody("Dione", Decimal('1.095e21'), Decimal('561.4'), (200, 200, 200), saturn, Decimal('377396'))
+    dione._orbit_angle = Decimal('5.2')
+    
     # Uranus and its major moons
     uranus = CelestialBody("Uranus", Decimal('8.681e25'), Decimal('25362.0'), (173, 216, 230), sun, Decimal('2.871e9'))
     uranus._orbit_angle = Decimal('5.93')  # ~340 degrees
@@ -184,6 +212,12 @@ def main():
     miranda = CelestialBody("Miranda", Decimal('6.59e19'), Decimal('235.8'), (169, 169, 169), uranus, Decimal('129390'))
     miranda._orbit_angle = Decimal('5.50')  # ~315 degrees relative to Uranus
     
+    ariel = CelestialBody("Ariel", Decimal('1.251e21'), Decimal('578.9'), (169, 169, 169), uranus, Decimal('190900'))
+    ariel._orbit_angle = Decimal('1.8')
+    
+    umbriel = CelestialBody("Umbriel", Decimal('1.275e21'), Decimal('584.7'), (169, 169, 169), uranus, Decimal('266000'))
+    umbriel._orbit_angle = Decimal('4.1')
+    
     # Neptune and its major moons
     neptune = CelestialBody("Neptune", Decimal('1.024e26'), Decimal('24622.0'), (0, 0, 139), sun, Decimal('4.495e9'))
     neptune._orbit_angle = Decimal('1.05')  # ~60 degrees
@@ -194,15 +228,36 @@ def main():
     naiad = CelestialBody("Naiad", Decimal('1.9e17'), Decimal('33.0'), (169, 169, 169), neptune, Decimal('48227'))
     naiad._orbit_angle = Decimal('4.45')  # ~255 degrees relative to Neptune
     
+    nereid = CelestialBody("Nereid", Decimal('2.7e19'), Decimal('170'), (169, 169, 169), neptune, Decimal('5513400'))
+    nereid._orbit_angle = Decimal('2.7')
+    
+    # Dwarf Planets and Kuiper Belt Objects
+    pluto = CelestialBody("Pluto", Decimal('1.303e22'), Decimal('1188.3'), (230, 230, 230), sun, Decimal('5.9e9'))
+    pluto._orbit_angle = Decimal('2.3')
+    
+    charon = CelestialBody("Charon", Decimal('1.586e21'), Decimal('606'), (200, 200, 200), pluto, Decimal('19571'))
+    charon._orbit_angle = Decimal('1.1')
+    
+    haumea = CelestialBody("Haumea", Decimal('4.006e21'), Decimal('816'), (230, 230, 230), sun, Decimal('6.452e9'))
+    haumea._orbit_angle = Decimal('3.7')
+    
+    makemake = CelestialBody("Makemake", Decimal('3.1e21'), Decimal('715'), (230, 230, 230), sun, Decimal('6.850e9'))
+    makemake._orbit_angle = Decimal('4.9')
+    
+    eris = CelestialBody("Eris", Decimal('1.67e22'), Decimal('1163'), (230, 230, 230), sun, Decimal('10.125e9'))
+    eris._orbit_angle = Decimal('5.5')
+    
     bodies = [
         sun,
         mercury, venus,
         earth, moon,
         mars, phobos, deimos,
-        jupiter, io, europa, ganymede, callisto,
-        saturn, titan, rhea, iapetus, enceladus,
-        uranus, titania, oberon, miranda,
-        neptune, triton, naiad
+        ceres, vesta, pallas, hygiea,
+        jupiter, io, europa, ganymede, callisto, amalthea, thebe,
+        saturn, titan, rhea, iapetus, enceladus, mimas, tethys, dione,
+        uranus, titania, oberon, miranda, ariel, umbriel,
+        neptune, triton, naiad, nereid,
+        pluto, charon, haumea, makemake, eris
     ]
     
     for body in bodies:
