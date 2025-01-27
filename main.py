@@ -6,6 +6,9 @@ from rich.table import Table
 # Set precision to 50 decimal places
 getcontext().prec = 50
 
+# Define pi with high precision
+PI = Decimal('3.14159265358979323846264338327950288419716939937510')
+
 class CelestialBody:
     G = Decimal('6.67430e-11')  # Gravitational constant in m³/kg·s²
     
@@ -41,7 +44,7 @@ class CelestialBody:
         Args:
             angle_radians: New angle in radians (0 = along x-axis)
         """
-        self._orbit_angle = angle_radians % (Decimal('2') * Decimal(str(math.pi)))
+        self._orbit_angle = angle_radians % (Decimal('2') * PI)
       
     @property
     def surface_gravity(self) -> Decimal:
