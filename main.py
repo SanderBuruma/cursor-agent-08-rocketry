@@ -72,28 +72,66 @@ def main():
     
     # Create bodies
     sun = CelestialBody("Sun", 1.989e30, 696340.0, (255, 255, 0))
+    
+    # Mercury and Venus have no moons
     mercury = CelestialBody("Mercury", 3.285e23, 2439.7, (169, 169, 169), sun, 57.9e6)
     venus = CelestialBody("Venus", 4.867e24, 6051.8, (255, 198, 73), sun, 108.2e6)
+    
+    # Earth and Moon
     earth = CelestialBody("Earth", 5.972e24, 6371.0, (0, 0, 255), sun, 149.6e6)
-    mars = CelestialBody("Mars", 6.39e23, 3389.5, (255, 0, 0), sun, 227.9e6)
-    jupiter = CelestialBody("Jupiter", 1.898e27, 69911.0, (255, 165, 0), sun, 778.5e6)
-    saturn = CelestialBody("Saturn", 5.683e26, 58232.0, (238, 232, 205), sun, 1.434e9)
-    uranus = CelestialBody("Uranus", 8.681e25, 25362.0, (173, 216, 230), sun, 2.871e9)
-    neptune = CelestialBody("Neptune", 1.024e26, 24622.0, (0, 0, 139), sun, 4.495e9)
     moon = CelestialBody("Moon", 7.348e22, 1737.4, (128, 128, 128), earth, 384400)
     
-    planets = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon]
+    # Mars and its moons
+    mars = CelestialBody("Mars", 6.39e23, 3389.5, (255, 0, 0), sun, 227.9e6)
+    phobos = CelestialBody("Phobos", 1.06e16, 11.267, (169, 169, 169), mars, 9377)
+    deimos = CelestialBody("Deimos", 1.48e15, 6.2, (169, 169, 169), mars, 23460)
     
-    for planet in planets:
+    # Jupiter and its major moons
+    jupiter = CelestialBody("Jupiter", 1.898e27, 69911.0, (255, 165, 0), sun, 778.5e6)
+    io = CelestialBody("Io", 8.932e22, 1821.6, (255, 255, 150), jupiter, 421700)
+    europa = CelestialBody("Europa", 4.800e22, 1560.8, (255, 220, 200), jupiter, 671100)
+    ganymede = CelestialBody("Ganymede", 1.482e23, 2634.1, (169, 169, 169), jupiter, 1070400)
+    callisto = CelestialBody("Callisto", 1.076e23, 2410.3, (128, 128, 128), jupiter, 1882700)
+    
+    # Saturn and its major moons
+    saturn = CelestialBody("Saturn", 5.683e26, 58232.0, (238, 232, 205), sun, 1.434e9)
+    titan = CelestialBody("Titan", 1.345e23, 2574.73, (255, 200, 100), saturn, 1221870)
+    rhea = CelestialBody("Rhea", 2.307e21, 763.8, (200, 200, 200), saturn, 527108)
+    iapetus = CelestialBody("Iapetus", 1.806e21, 734.5, (200, 200, 200), saturn, 3560820)
+    enceladus = CelestialBody("Enceladus", 1.080e20, 252.1, (255, 255, 255), saturn, 237948)
+    
+    # Uranus and its major moons
+    uranus = CelestialBody("Uranus", 8.681e25, 25362.0, (173, 216, 230), sun, 2.871e9)
+    titania = CelestialBody("Titania", 3.527e21, 788.9, (169, 169, 169), uranus, 435910)
+    oberon = CelestialBody("Oberon", 3.014e21, 761.4, (169, 169, 169), uranus, 583520)
+    miranda = CelestialBody("Miranda", 6.59e19, 235.8, (169, 169, 169), uranus, 129390)
+    
+    # Neptune and its major moons
+    neptune = CelestialBody("Neptune", 1.024e26, 24622.0, (0, 0, 139), sun, 4.495e9)
+    triton = CelestialBody("Triton", 2.139e22, 1353.4, (200, 200, 200), neptune, 354759)
+    naiad = CelestialBody("Naiad", 1.9e17, 33.0, (169, 169, 169), neptune, 48227)
+    
+    bodies = [
+        sun,
+        mercury, venus,
+        earth, moon,
+        mars, phobos, deimos,
+        jupiter, io, europa, ganymede, callisto,
+        saturn, titan, rhea, iapetus, enceladus,
+        uranus, titania, oberon, miranda,
+        neptune, triton, naiad
+    ]
+    
+    for body in bodies:
         table.add_row(
-            planet.name,
-            f"{planet.mass:.2e}",
-            f"{planet.radius:.1f}",
-            f"{planet.surface_gravity:.1f}",
-            f"{planet.escape_velocity/1000:.1f}",  # Convert to km/s
-            f"{planet.orbital_velocity(200)/1000:.1f}",  # Convert to km/s
-            planet.parent_body.name if planet.parent_body else "-",
-            f"{planet.distance_from_parent_km:,.0f}" if planet.parent_body else "-"
+            body.name,
+            f"{body.mass:.2e}",
+            f"{body.radius:.1f}",
+            f"{body.surface_gravity:.1f}",
+            f"{body.escape_velocity/1000:.1f}",  # Convert to km/s
+            f"{body.orbital_velocity(200)/1000:.1f}",  # Convert to km/s
+            body.parent_body.name if body.parent_body else "-",
+            f"{body.distance_from_parent_km:,.0f}" if body.parent_body else "-"
         )
     
     console.print(table)
