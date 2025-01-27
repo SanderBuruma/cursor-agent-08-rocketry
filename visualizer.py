@@ -86,8 +86,9 @@ class Visualizer:
         #                          (parent_screen_x, parent_screen_y), 
         #                          orbit_radius, 1)
         
-        # Draw the body if it's on screen
-        if 0 <= screen_x <= WINDOW_SIZE[0] and 0 <= screen_y <= WINDOW_SIZE[1]:
+        # Draw the body if any part of it is visible on screen
+        if (-radius_px <= screen_x <= WINDOW_SIZE[0] + radius_px and 
+            -radius_px <= screen_y <= WINDOW_SIZE[1] + radius_px):
             pygame.draw.circle(self.screen, body.color, (screen_x, screen_y), radius_px)
             
             # Draw name if zoomed in enough or if body is hovered
