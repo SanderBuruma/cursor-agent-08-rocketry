@@ -4,11 +4,13 @@ from rich.table import Table
 
 
 class CelestialBody:
-    def __init__(self, name: str, mass: float, radius: float, color: tuple[int, int, int]):
+    def __init__(self, name: str, mass: float, radius: float, color: tuple[int, int, int], parent_body: 'CelestialBody' = None, distance_from_parent_km: float = 0):
         self.name = name
         self.mass = mass
         self.radius = radius
         self.color = color
+        self.parent_body = parent_body
+        self.distance_from_parent_km = distance_from_parent_km
       
     @property
     def surface_gravity(self):
@@ -47,7 +49,8 @@ class CelestialBody:
         return math.sqrt(2 * 6.67430e-11 * self.mass / radius_meters)
         
     def __str__(self):
-        return f"{self.name} ({self.mass} kg, {self.radius} m, {self.color})"
+        parent_info = f", orbiting {self.parent_body.name}" if self.parent_body else ""
+        return f"{self.name} ({self.mass:.2e} kg, {self.radius} km{parent_info})"
     
     def __repr__(self):
         return f"CelestialBody(name={self.name}, mass={self.mass}, radius={self.radius}, color={self.color})"
@@ -64,18 +67,22 @@ def main():
     table.add_column("SG (m/s²)", justify="right", style="yellow")
     table.add_column("EV (km/s)", justify="right", style="yellow")
     table.add_column("Orbit(km/s) 200km", justify="right", style="yellow")
+    table.add_column("Parent Body", style="cyan")
+    table.add_column("Distance (km)", justify="right", style="yellow")
     
-    planets: list[CelestialBody] = []
-    planets.append(CelestialBody("Sun", 1.989e30, 696340.0, (255, 255, 0)))
-    planets.append(CelestialBody("Mercury", 3.285e23, 2439.7, (169, 169, 169)))
-    planets.append(CelestialBody("Venus", 4.867e24, 6051.8, (255, 198, 73)))
-    planets.append(CelestialBody("Earth", 5.972e24, 6371.0, (0, 0, 255)))
-    planets.append(CelestialBody("Mars", 6.39e23, 3389.5, (255, 0, 0)))
-    planets.append(CelestialBody("Jupiter", 1.898e27, 69911.0, (255, 165, 0)))
-    planets.append(CelestialBody("Saturn", 5.683e26, 58232.0, (238, 232, 205)))
-    planets.append(CelestialBody("Uranus", 8.681e25, 25362.0, (173, 216, 230)))
-    planets.append(CelestialBody("Neptune", 1.024e26, 24622.0, (0, 0, 139)))
-    planets.append(CelestialBody("Moon", 7.348e22, 1737.4, (128, 128, 128)))
+    # Create bodies
+    sun = CelestialBody("Sun", 1.989e30, 696340.0, (255, 255, 0))
+    mercury = CelestialBody("Mercury", 3.285e23, 2439.7, (169, 169, 169), sun, 57.9e6)
+    venus = CelestialBody("Venus", 4.867e24, 6051.8, (255, 198, 73), sun, 108.2e6)
+    earth = CelestialBody("Earth", 5.972e24, 6371.0, (0, 0, 255), sun, 149.6e6)
+    mars = CelestialBody("Mars", 6.39e23, 3389.5, (255, 0, 0), sun, 227.9e6)
+    jupiter = CelestialBody("Jupiter", 1.898e27, 69911.0, (255, 165, 0), sun, 778.5e6)
+    saturn = CelestialBody("Saturn", 5.683e26, 58232.0, (238, 232, 205), sun, 1.434e9)
+    uranus = CelestialBody("Uranus", 8.681e25, 25362.0, (173, 216, 230), sun, 2.871e9)
+    neptune = CelestialBody("Neptune", 1.024e26, 24622.0, (0, 0, 139), sun, 4.495e9)
+    moon = CelestialBody("Moon", 7.348e22, 1737.4, (128, 128, 128), earth, 384400)
+    
+    planets = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon]
     
     for planet in planets:
         table.add_row(
@@ -84,7 +91,9 @@ def main():
             f"{planet.radius:.1f}",
             f"{planet.surface_gravity:.1f}",
             f"{planet.escape_velocity/1000:.1f}",  # Convert to km/s
-            f"{planet.orbital_velocity(200):.1f}"
+            f"{planet.orbital_velocity(200)/1000:.1f}",  # Convert to km/s
+            planet.parent_body.name if planet.parent_body else "-",
+            f"{planet.distance_from_parent_km:,.0f}" if planet.parent_body else "-"
         )
     
     console.print(table)
