@@ -1,8 +1,10 @@
 import pygame
 import sys
 from decimal import Decimal
-from main import CelestialBody, main
+from main import CelestialBody, main, PI
 import math
+
+from rocket import Rocket
 
 # Initialize Pygame
 pygame.init()
@@ -12,6 +14,8 @@ WINDOW_SIZE = (1200, 800)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 FONT_SIZE = 16
+ROCKET_COLOR = (255, 100, 100)
+ROCKET_SIZE = 10  # Base size in pixels
 
 class Visualizer:
     def __init__(self, bodies):
@@ -33,6 +37,19 @@ class Visualizer:
         self.time_scale = Decimal('1')  # 1 second real time = 1 second simulation time
         self.paused = False
         
+        # Create rocket in circular orbit around Earth
+        earth = next(b for b in bodies if b.name == "Earth")
+        self.rocket = Rocket.in_circular_orbit(
+            parent_body=earth,
+            altitude_km=Decimal('1000'),  # 1000km orbit
+            dry_mass=1000,  # 1000 kg dry mass
+            fuel_mass=9000,  # 9000 kg fuel mass
+            thrust=150000,   # 150 kN thrust
+            fuel_consumption=40,  # 40 kg/s fuel consumption
+        )
+        self.track_rocket = False
+        self.rotation_speed = Decimal('0.1')  # Radians per key press
+    
     def world_to_screen(self, x: Decimal, y: Decimal) -> tuple[int, int]:
         """Convert world coordinates (meters) to screen coordinates (pixels)"""
         screen_x = int(float(x * self.zoom)) + WINDOW_SIZE[0]//2 + self.camera_x
@@ -45,24 +62,6 @@ class Visualizer:
         world_y = (Decimal(str(screen_y - WINDOW_SIZE[1]//2 - self.camera_y)) / self.zoom)
         return (world_x, world_y)
     
-    def draw_controls(self):
-        """Draw control instructions"""
-        controls = [
-            "Controls:",
-            "Mouse Wheel: Zoom in/out",
-            "Left Click + Drag: Pan view",
-            "Hover: Show body info",
-            "Space: Pause/Resume",
-            "+ / -: Speed up/slow down time (10x)",
-            f"Time scale: {float(self.time_scale):.1e}x",
-            "ESC: Quit"
-        ]
-        y = 10
-        for line in controls:
-            text = self.font.render(line, True, WHITE)
-            self.screen.blit(text, (10, y))
-            y += FONT_SIZE + 2
-    
     def get_absolute_position(self, body: CelestialBody) -> tuple[Decimal, Decimal]:
         """Get position relative to the sun (0,0) by accumulating parent positions"""
         x, y = body.get_position()
@@ -73,6 +72,44 @@ class Visualizer:
             y += parent_y
             current = current.parent_body
         return (x, y)
+    
+    def get_rocket_absolute_position(self) -> tuple[Decimal, Decimal]:
+        """Get rocket position relative to the sun (0,0) by accumulating parent positions"""
+        rx, ry = self.rocket.x, self.rocket.y  # Get position relative to parent
+        current = self.rocket.parent_body
+        while current:
+            parent_x, parent_y = current.get_position()
+            rx += parent_x
+            ry += parent_y
+            current = current.parent_body
+        return (rx, ry)
+    
+    def draw_controls(self):
+        """Draw control instructions"""
+        controls = [
+            "Controls:",
+            "Mouse Wheel: Zoom in/out",
+            "Left Click + Drag: Pan view",
+            "Hover: Show body info",
+            "Space: Pause/Resume",
+            "+ / -: Speed up/slow down time (10x)",
+            "W: Thrust on",
+            "S: Thrust off",
+            "A/D: Rotate rocket",
+            "1: Toggle rocket tracking",
+            f"Time scale: {float(self.time_scale):.1e}x",
+            f"Thrust: {float(self.rocket.thrust_fraction*100):.0f}%",
+            f"Speed: {float(self.rocket.speed/Decimal('1000')):.1f} km/s",
+            f"Orbital speed needed: {float(self.rocket.orbital_speed/Decimal('1000')):.1f} km/s",
+            f"Altitude: {float(self.rocket.distance_from_parent_km - self.rocket.parent_body.radius):.1f} km",
+            f"Rotation: {float(self.rocket.rotation * Decimal('180') / PI):.0f}°",
+            "ESC: Quit"
+        ]
+        y = 10
+        for line in controls:
+            text = self.font.render(line, True, WHITE)
+            self.screen.blit(text, (10, y))
+            y += FONT_SIZE + 2
     
     def draw_body(self, body: CelestialBody):
         """Draw a celestial body and its orbit"""
@@ -215,22 +252,65 @@ class Visualizer:
                 new_angle = body._orbit_angle + angle_change
                 body.update_position(new_angle)
     
+    def draw_rocket(self):
+        """Draw the rocket as an elongated triangle pointing in its direction of motion"""
+        # Get rocket absolute position in screen coordinates
+        x, y = self.get_rocket_absolute_position()
+        screen_x, screen_y = self.world_to_screen(x, y)
+        
+        # Calculate rocket orientation from rotation angle
+        angle = float(self.rocket.rotation)
+        
+        # Calculate triangle points
+        size = max(5, int(ROCKET_SIZE * self.zoom))  # Scale with zoom but maintain minimum size
+        points = [
+            (screen_x + size * 2 * math.cos(angle),
+             screen_y + size * 2 * math.sin(angle)),  # Nose
+            (screen_x + size * math.cos(angle + 2.6),
+             screen_y + size * math.sin(angle + 2.6)),  # Left wing
+            (screen_x + size * math.cos(angle - 2.6),
+             screen_y + size * math.sin(angle - 2.6))   # Right wing
+        ]
+        
+        # Draw rocket
+        pygame.draw.polygon(self.screen, ROCKET_COLOR, points)
+        
+        # Draw thrust indicator if engines are firing
+        if self.rocket.thrust_fraction > 0:
+            thrust_points = [
+                points[1],  # Left wing
+                (screen_x - size * math.cos(angle),
+                 screen_y - size * math.sin(angle)),  # Back
+                points[2]   # Right wing
+            ]
+            pygame.draw.polygon(self.screen, (255, 165, 0), thrust_points)
+    
     def run(self):
+        """Main game loop"""
         running = True
-        last_time = pygame.time.get_ticks() / 1000.0  # Convert to seconds
+        last_time = pygame.time.get_ticks() / 1000.0
         
         while running:
+            # Handle time step
             current_time = pygame.time.get_ticks() / 1000.0
             dt = current_time - last_time
             last_time = current_time
             
+            # Handle events
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_a]:
+                self.rocket.rotate(-self.rotation_speed * Decimal(str(dt)))
+            if keys[pygame.K_d]:
+                self.rocket.rotate(self.rotation_speed * Decimal(str(dt)))
+            if keys[pygame.K_w]:
+                self.rocket.set_thrust(Decimal('1'))
+            if keys[pygame.K_s]:
+                self.rocket.set_thrust(Decimal('0'))
+            
             for event in pygame.event.get():
-                if event.type == pygame.QUIT or (
-                    event.type == pygame.KEYDOWN and 
-                    event.key == pygame.K_ESCAPE
-                ):
+                if event.type == pygame.QUIT:
                     running = False
-                
+                    
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # Left click
                         self.dragging = True
@@ -239,42 +319,49 @@ class Visualizer:
                         self.adjust_zoom(1)
                     elif event.button == 5:  # Mouse wheel down
                         self.adjust_zoom(-1)
-                
+                        
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:  # Left click
+                    if event.button == 1:  # Left click release
                         self.dragging = False
-                
+                        
                 elif event.type == pygame.MOUSEMOTION:
                     if self.dragging:
-                        current_pos = event.pos
-                        dx = current_pos[0] - self.last_mouse_pos[0]
-                        dy = current_pos[1] - self.last_mouse_pos[1]
+                        dx = event.pos[0] - self.last_mouse_pos[0]
+                        dy = event.pos[1] - self.last_mouse_pos[1]
                         self.camera_x += dx
                         self.camera_y += dy
-                        self.last_mouse_pos = current_pos
-                    
-                    # Update hovered body
+                        self.last_mouse_pos = event.pos
                     self.hovered_body = self.find_hovered_body(event.pos)
-                
+                    
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                    elif event.key == pygame.K_SPACE:
                         self.paused = not self.paused
-                    elif event.key == pygame.K_UP or event.key == pygame.K_UP:
+                    elif event.key == pygame.K_EQUALS:  # Plus key
                         self.time_scale *= Decimal('10')
-                    elif event.key == pygame.K_DOWN or event.key == pygame.K_DOWN:
+                    elif event.key == pygame.K_MINUS:
                         self.time_scale /= Decimal('10')
+                    elif event.key == pygame.K_1:
+                        self.track_rocket = not self.track_rocket
             
-            # Update orbital positions
-            self.update_orbits(dt)
+            # Update
+            if not self.paused:
+                self.update_orbits(dt)
+                self.rocket.update(Decimal(str(dt)) * self.time_scale)
+                
+                # Update camera if tracking rocket
+                if self.track_rocket:
+                    rx, ry = self.get_rocket_absolute_position()
+                    screen_x, screen_y = self.world_to_screen(rx, ry)
+                    self.camera_x = WINDOW_SIZE[0]//2 - screen_x
+                    self.camera_y = WINDOW_SIZE[1]//2 - screen_y
             
-            # Clear screen
+            # Draw
             self.screen.fill(BLACK)
-            
-            # Draw all bodies
             for body in self.bodies:
                 self.draw_body(body)
-            
-            # Draw controls
+            self.draw_rocket()
             self.draw_controls()
             
             # Update display
