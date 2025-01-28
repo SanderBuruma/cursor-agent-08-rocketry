@@ -21,7 +21,17 @@ class CelestialBody:
         self.parent_body = parent_body
         self.distance_from_parent_km = Decimal(str(distance_from_parent_km))
         self._orbit_angle = Decimal('0.0')  # Angle in radians
+        self._children = []  # List of bodies orbiting this one
+        
+        # Register with parent
+        if parent_body:
+            parent_body._children.append(self)
       
+    @property
+    def children(self) -> list['CelestialBody']:
+        """Get list of bodies that orbit this one."""
+        return self._children.copy()  # Return copy to prevent modification
+    
     def get_position(self) -> tuple[Decimal, Decimal]:
         """Calculate x,y coordinates in meters relative to parent body.
         Assumes parent is at (0,0) and uses current orbit angle.

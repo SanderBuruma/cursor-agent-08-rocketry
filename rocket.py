@@ -81,6 +81,82 @@ class Rocket:
         """
         self.thrust_fraction = max(Decimal('0'), min(Decimal('1'), Decimal(str(fraction))))
     
+    def check_soi_transition(self, dt: Decimal) -> None:
+        """
+        Check if rocket has entered or left any sphere of influence.
+        Updates parent body and transforms coordinates if needed.
+        """
+        current_parent = self.parent_body
+        distance_to_parent = self.distance_from_parent_km
+        
+        # Check if we're leaving current parent's SOI
+        if current_parent.parent_body:  # If our parent orbits something
+            parent_soi = current_parent.sphere_of_influence
+            if parent_soi and distance_to_parent > parent_soi:
+                # Transform to parent's parent reference frame
+                self.transition_to_parent(current_parent.parent_body)
+                return
+        
+        # Check if we're entering any child body's SOI
+        for body in current_parent.children:
+            if body.sphere_of_influence:  # If body has an SOI
+                # Calculate distance to this body
+                dx = self.x - body.get_position()[0]
+                dy = self.y - body.get_position()[1]
+                distance = (dx * dx + dy * dy).sqrt() / Decimal('1000')  # Convert to km
+                
+                if distance < body.sphere_of_influence:
+                    # Transform to this body's reference frame
+                    self.transition_to_parent(body)
+                    return
+    
+    def transition_to_parent(self, new_parent: CelestialBody) -> None:
+        """
+        Transform rocket's position and velocity to a new parent body's reference frame.
+        
+        Args:
+            new_parent: The new parent body
+        """
+        old_parent = self.parent_body
+        
+        if new_parent == old_parent.parent_body:
+            # Moving to parent's parent (leaving SOI)
+            # Add parent's position and velocity
+            parent_x, parent_y = old_parent.get_position()
+            self.x += parent_x
+            self.y += parent_y
+            
+            # Add parent's orbital velocity
+            parent_speed = old_parent.current_orbital_velocity
+            # Calculate position angle
+            parent_angle = Decimal(str(math.atan2(float(parent_y), float(parent_x))))
+            # Velocity is 90 degrees (PI/2) ahead of position for prograde orbit
+            velocity_angle = parent_angle + PI / Decimal('2')
+            self.dx += parent_speed * Decimal(str(math.cos(float(velocity_angle))))
+            self.dy += parent_speed * Decimal(str(math.sin(float(velocity_angle))))
+            
+        else:
+            # Moving to a child body (entering SOI)
+            # Get child's position and velocity relative to our current parent
+            child_x, child_y = new_parent.get_position()
+            child_speed = new_parent.current_orbital_velocity
+            # Calculate position angle
+            child_angle = Decimal(str(math.atan2(float(child_y), float(child_x))))
+            # Velocity is 90 degrees (PI/2) ahead of position for prograde orbit
+            velocity_angle = child_angle + PI / Decimal('2')
+            child_dx = child_speed * Decimal(str(math.cos(float(velocity_angle))))
+            child_dy = child_speed * Decimal(str(math.sin(float(velocity_angle))))
+            
+            # Subtract child's position and velocity
+            self.x -= child_x
+            self.y -= child_y
+            self.dx -= child_dx
+            self.dy -= child_dy
+        
+        # Update parent
+        self.parent_body = new_parent
+        print(f"Rocket transitioned from {old_parent.name}'s SOI to {new_parent.name}'s SOI")
+    
     def update(self, dt: Decimal) -> None:
         """
         Update rocket state based on forces and time step.
@@ -114,6 +190,9 @@ class Rocket:
         # Update position
         self.x += self.dx * dt
         self.y += self.dy * dt
+        
+        # Check for SOI transitions
+        self.check_soi_transition(dt)
     
     @property
     def current_thrust(self) -> Decimal:
