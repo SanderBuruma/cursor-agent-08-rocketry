@@ -90,9 +90,30 @@ class CelestialBody:
             return Decimal('0')
         return (self.G * self.parent_body.mass / (self.distance_from_parent_km * Decimal('1000'))).sqrt()
         
+    @property
+    def sphere_of_influence(self) -> Decimal:
+        """
+        Calculate the radius of the body's sphere of influence in kilometers.
+        Uses the formula: r_soi = a * (m/M)^(2/5), where:
+        - a is the semi-major axis (distance from parent)
+        - m is the body's mass
+        - M is the parent body's mass
+        
+        Returns:
+            Radius of sphere of influence in km, or None if body has no parent
+        """
+        if not self.parent_body:
+            return None
+            
+        mass_ratio = self.mass / self.parent_body.mass
+        # Convert mass ratio to float for power operation, then back to Decimal
+        mass_ratio_pow = Decimal(str(float(mass_ratio) ** 0.4))  # 2/5 = 0.4
+        return self.distance_from_parent_km * mass_ratio_pow
+    
     def __str__(self):
         parent_info = f", orbiting {self.parent_body.name}" if self.parent_body else ""
-        return f"{self.name} ({self.mass:.2e} kg, {self.radius} km{parent_info})"
+        soi_info = f", SOI: {self.sphere_of_influence:.0f} km" if self.sphere_of_influence else ""
+        return f"{self.name} ({self.mass:.2e} kg, {self.radius} km{parent_info}{soi_info})"
     
     def __repr__(self):
         return f"CelestialBody(name={self.name}, mass={self.mass}, radius={self.radius}, color={self.color})"
@@ -111,6 +132,7 @@ def main():
     table.add_column("Orbit(km/s) 200km", justify="right", style="yellow")
     table.add_column("Parent Body", style="cyan")
     table.add_column("Distance (km)", justify="right", style="yellow")
+    table.add_column("SOI (km)", justify="right", style="magenta")
     
     # Create bodies
     sun = CelestialBody("Sun", Decimal('1.989e30'), Decimal('696340.0'), (255, 255, 0))
@@ -264,12 +286,13 @@ def main():
         table.add_row(
             body.name,
             f"{body.mass:.2e}",
-            f"{body.radius:.1f}",
+            f"{body.radius:,.0f}",
             f"{body.surface_gravity:.1f}",
             f"{body.escape_velocity/Decimal('1000'):.1f}",  # Convert to km/s
             f"{body.orbital_velocity(Decimal('200'))/Decimal('1000'):.1f}",  # Convert to km/s
             body.parent_body.name if body.parent_body else "-",
-            f"{body.distance_from_parent_km:,.0f}" if body.parent_body else "-"
+            f"{body.distance_from_parent_km:,.0f}" if body.parent_body else "-",
+            f"{body.sphere_of_influence:,.0f}" if body.sphere_of_influence else "-"
         )
     
     console.print(table)
