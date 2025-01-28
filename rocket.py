@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal, getcontext
 import math
-from main import CelestialBody
+from main import PI, CelestialBody
 from main import main as main_
 from rich.console import Console
 from rich.table import Table
@@ -20,23 +20,110 @@ class Rocket:
         thrust (Decimal): Engine thrust in Newtons
         fuel_consumption (Decimal): Fuel consumption rate in kg/s
         parent_body (CelestialBody): The celestial body the rocket is orbiting/launching from
-        distance_from_parent_km (Decimal): Distance from parent body's center in km
+        x (Decimal): X position relative to parent body in meters
+        y (Decimal): Y position relative to parent body in meters
+        dx (Decimal): X velocity relative to parent body in m/s
+        dy (Decimal): Y velocity relative to parent body in m/s
+        rotation (Decimal): Rotation angle in radians (0 = pointing right)
+        thrust_fraction (Decimal): Fraction of maximum thrust being used (0 to 1)
     """
     dry_mass: Decimal
     fuel_mass: Decimal
     thrust: Decimal
     fuel_consumption: Decimal
     parent_body: CelestialBody
-    distance_from_parent_km: Decimal
+    x: Decimal = Decimal('0')
+    y: Decimal = Decimal('0')
+    dx: Decimal = Decimal('0')
+    dy: Decimal = Decimal('0')
+    rotation: Decimal = Decimal('0')
+    thrust_fraction: Decimal = Decimal('0')
     
     def __post_init__(self):
-        """Convert any numeric inputs to Decimal and calculate Isp if not provided."""
+        """Convert any numeric inputs to Decimal."""
         self.dry_mass = Decimal(str(self.dry_mass))
         self.fuel_mass = Decimal(str(self.fuel_mass))
         self.thrust = Decimal(str(self.thrust))
         self.fuel_consumption = Decimal(str(self.fuel_consumption))
-        self.distance_from_parent_km = Decimal(str(self.distance_from_parent_km))
+        self.x = Decimal(str(self.x))
+        self.y = Decimal(str(self.y))
+        self.dx = Decimal(str(self.dx))
+        self.dy = Decimal(str(self.dy))
+        self.rotation = Decimal(str(self.rotation))
+        self.thrust_fraction = Decimal(str(self.thrust_fraction))
+    
+    @property
+    def distance_from_parent_km(self) -> Decimal:
+        """Calculate distance from parent body's center in km."""
+        distance_m = (self.x * self.x + self.y * self.y).sqrt()
+        return distance_m / Decimal('1000')
+    
+    @property
+    def speed(self) -> Decimal:
+        """Get total speed in m/s relative to parent body."""
+        return (self.dx * self.dx + self.dy * self.dy).sqrt()
+    
+    @property
+    def orbital_speed(self) -> Decimal:
+        """Get the orbital speed needed for a circular orbit at current distance."""
+        return self.parent_body.orbital_velocity(self.distance_from_parent_km - self.parent_body.radius)
+    
+    def rotate(self, angle_change: Decimal) -> None:
+        """
+        Rotate the rocket by the given angle in radians.
+        Positive angles rotate counterclockwise.
+        """
+        self.rotation = (self.rotation + angle_change) % (Decimal('5') * PI)
+    
+    def set_thrust(self, fraction: Decimal) -> None:
+        """
+        Set thrust as a fraction of maximum (0 to 1).
+        """
+        self.thrust_fraction = max(Decimal('0'), min(Decimal('1'), Decimal(str(fraction))))
+    
+    def update(self, dt: Decimal) -> None:
+        """
+        Update rocket state based on forces and time step.
         
+        Args:
+            dt: Time step in seconds
+        """
+        # Update fuel if engines are firing
+        if self.thrust_fraction > 0:
+            self.update_fuel(dt)
+        
+        # Calculate gravitational acceleration
+        r = self.distance_from_parent_km * Decimal('1000')  # Convert to meters
+        if r > 0:
+            g = self.local_gravity
+            g_x = -g * self.x / r  # Gravity points toward parent body
+            g_y = -g * self.y / r
+            
+            # Apply gravity
+            self.dx += g_x * dt
+            self.dy += g_y * dt
+            
+            # Apply thrust if engines are firing and we have fuel
+            if self.thrust_fraction > 0 and self.fuel_mass > 0:
+                thrust_acceleration = self.current_thrust / self.total_mass
+                # Apply thrust in direction of rotation
+                rot_float = float(self.rotation)
+                self.dx += thrust_acceleration * Decimal(str(math.cos(rot_float))) * dt
+                self.dy += thrust_acceleration * Decimal(str(math.sin(rot_float))) * dt
+        
+        # Update position
+        self.x += self.dx * dt
+        self.y += self.dy * dt
+    
+    @property
+    def current_thrust(self) -> Decimal:
+        """Get current thrust based on thrust fraction."""
+        return self.thrust * self.thrust_fraction
+    
+    @property
+    def current_fuel_consumption(self) -> Decimal:
+        """Get current fuel consumption based on thrust fraction."""
+        return self.fuel_consumption * self.thrust_fraction
     
     @property
     def total_mass(self) -> Decimal:
@@ -101,6 +188,34 @@ class Rocket:
         """
         self.distance_from_parent_km = max(Decimal('0'), new_distance_km)
 
+    @classmethod
+    def in_circular_orbit(cls, parent_body: CelestialBody, altitude_km: Decimal, **kwargs) -> 'Rocket':
+        """
+        Create a rocket in a circular orbit around the parent body.
+        
+        Args:
+            parent_body: The body to orbit
+            altitude_km: Altitude above surface in km
+            **kwargs: Other rocket parameters (dry_mass, fuel_mass, thrust, fuel_consumption)
+        
+        Returns:
+            A new Rocket instance in circular orbit
+        """
+        # Calculate orbital radius and velocity
+        orbit_radius_km = parent_body.radius + altitude_km
+        orbit_radius_m = orbit_radius_km * Decimal('1000')
+        orbital_velocity = parent_body.orbital_velocity(altitude_km)
+        
+        # Start at (r, 0) with velocity (0, v)
+        return cls(
+            parent_body=parent_body,
+            x=orbit_radius_m,
+            y=Decimal('0'),
+            dx=Decimal('0'),
+            dy=orbital_velocity,
+            **kwargs
+        )
+
 # Example usage:
 if __name__ == "__main__":
     # Get celestial bodies
@@ -115,7 +230,12 @@ if __name__ == "__main__":
         thrust=150000,   # 100 kN thrust
         fuel_consumption=40,  # 40 kg/s fuel consumption
         parent_body=earth,
-        distance_from_parent_km=earth.radius  # Starting from surface
+        x=earth.radius,  # Starting from surface
+        y=Decimal('0'),
+        dx=Decimal('0'),
+        dy=earth.orbital_velocity(earth.radius - earth.radius),
+        rotation=Decimal('0'),
+        thrust_fraction=Decimal('0')
     )
     
     # Create Rich table
