@@ -3,6 +3,8 @@ from decimal import Decimal, getcontext
 import math
 from main import CelestialBody
 from main import main as main_
+from rich.console import Console
+from rich.table import Table
 
 getcontext().prec = 50
 
@@ -19,7 +21,6 @@ class Rocket:
         fuel_consumption (Decimal): Fuel consumption rate in kg/s
         parent_body (CelestialBody): The celestial body the rocket is orbiting/launching from
         distance_from_parent_km (Decimal): Distance from parent body's center in km
-        specific_impulse (Decimal): Engine specific impulse in seconds (optional)
     """
     dry_mass: Decimal
     fuel_mass: Decimal
@@ -27,7 +28,6 @@ class Rocket:
     fuel_consumption: Decimal
     parent_body: CelestialBody
     distance_from_parent_km: Decimal
-    specific_impulse: Decimal = None
     
     def __post_init__(self):
         """Convert any numeric inputs to Decimal and calculate Isp if not provided."""
@@ -37,12 +37,6 @@ class Rocket:
         self.fuel_consumption = Decimal(str(self.fuel_consumption))
         self.distance_from_parent_km = Decimal(str(self.distance_from_parent_km))
         
-        # Calculate specific impulse if not provided
-        if self.specific_impulse is None:
-            g0 = Decimal('9.81')  # Standard gravity
-            self.specific_impulse = self.thrust / (self.fuel_consumption * g0)
-        else:
-            self.specific_impulse = Decimal(str(self.specific_impulse))
     
     @property
     def total_mass(self) -> Decimal:
@@ -57,8 +51,7 @@ class Rocket:
     @property
     def exhaust_velocity(self) -> Decimal:
         """Effective exhaust velocity in m/s."""
-        g0 = Decimal('9.81')  # Standard gravity
-        return self.specific_impulse * g0
+        return self.thrust / self.fuel_consumption
     
     @property
     def delta_v(self) -> Decimal:
@@ -119,16 +112,35 @@ if __name__ == "__main__":
     rocket = Rocket(
         dry_mass=1000,  # 1000 kg dry mass
         fuel_mass=9000,  # 9000 kg fuel mass
-        thrust=100000,   # 100 kN thrust
+        thrust=150000,   # 100 kN thrust
         fuel_consumption=40,  # 40 kg/s fuel consumption
         parent_body=earth,
         distance_from_parent_km=earth.radius  # Starting from surface
     )
     
-    print(f"Total Mass: {rocket.total_mass:.2f} kg")
-    print(f"Mass Ratio: {rocket.mass_ratio:.2f}")
-    print(f"Specific Impulse: {rocket.specific_impulse:.2f} s")
-    print(f"Delta-v: {rocket.delta_v:.2f} m/s")
-    print(f"Burn Time: {rocket.burn_time:.2f} s")
-    print(f"Local Gravity: {rocket.local_gravity:.2f} m/s²")
-    print(f"Thrust-to-Weight Ratio: {rocket.thrust_to_weight:.2f}") 
+    # Create Rich table
+    console = Console()
+    table = Table(title="Rocket Performance Characteristics")
+    
+    # Add columns
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", justify="right", style="yellow")
+    table.add_column("Unit", style="green")
+    
+    # Add rows with rocket properties
+    table.add_row("Dry Mass", f"{rocket.dry_mass:,.0f}", "kg")
+    table.add_row("Fuel Mass", f"{rocket.fuel_mass:,.0f}", "kg")
+    table.add_row("Total Mass", f"{rocket.total_mass:,.0f}", "kg")
+    table.add_row("Mass Ratio", f"{rocket.mass_ratio:.2f}", "-")
+    table.add_row("Thrust", f"{rocket.thrust/Decimal('1000'):,.0f}", "kN")
+    table.add_row("Fuel Consumption", f"{rocket.fuel_consumption:.0f}", "kg/s")
+    table.add_row("Exhaust Velocity", f"{rocket.exhaust_velocity:,.0f}", "m/s")
+    table.add_row("Delta-v", f"{rocket.delta_v:,.0f}", "m/s")
+    table.add_row("Burn Time", f"{rocket.burn_time:.0f}", "s")
+    table.add_row("Local Gravity", f"{rocket.local_gravity:.2f}", "m/s²")
+    table.add_row("Thrust-to-Weight Ratio", f"{rocket.thrust_to_weight:.2f}", "-")
+    table.add_row("Parent Body", rocket.parent_body.name, "-")
+    table.add_row("Distance from Parent", f"{rocket.distance_from_parent_km:,.0f}", "km")
+    
+    # Print the table
+    console.print(table) 
