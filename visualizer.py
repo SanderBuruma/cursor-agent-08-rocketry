@@ -48,7 +48,7 @@ class Visualizer:
             fuel_consumption=40,  # 40 kg/s fuel consumption
         )
         self.track_rocket = False
-        self.rotation_speed = Decimal('0.1')  # Radians per key press
+        self.rotation_speed = Decimal('0.5')  # Radians per key press
     
     def world_to_screen(self, x: Decimal, y: Decimal) -> tuple[int, int]:
         """Convert world coordinates (meters) to screen coordinates (pixels)"""
@@ -153,7 +153,7 @@ class Visualizer:
                     end_x = screen_x + math.cos(tangent_angle) * line_length/2
                     end_y = screen_y + math.sin(tangent_angle) * line_length/2
                     
-                    pygame.draw.line(self.screen, (50, 50, 50),
+                    pygame.draw.line(self.screen, (100, 150, 255),
                                    (int(start_x), int(start_y)),
                                    (int(end_x), int(end_y)), 1)
         
@@ -257,6 +257,68 @@ class Visualizer:
         # Get rocket absolute position in screen coordinates
         x, y = self.get_rocket_absolute_position()
         screen_x, screen_y = self.world_to_screen(x, y)
+        
+        # Draw orbit path if in bound orbit (not hyperbolic)
+        # Calculate specific orbital energy
+        v = self.rocket.speed
+        r = self.rocket.distance_from_parent_km * Decimal('1000')  # Convert to meters
+        mu = self.rocket.parent_body.G * self.rocket.parent_body.mass
+        specific_energy = (v * v / Decimal('2')) - mu / r
+        
+        if specific_energy < 0:  # Negative energy means bound orbit (elliptical or circular)
+            # Calculate orbital elements
+            rx, ry = self.rocket.x, self.rocket.y
+            vx, vy = self.rocket.dx, self.rocket.dy
+            h = rx * vy - ry * vx  # Specific angular momentum
+            
+            # Calculate eccentricity
+            ex = ((v * v - mu / r) * rx - (rx * vx + ry * vy) * vx) / mu
+            ey = ((v * v - mu / r) * ry - (rx * vx + ry * vy) * vy) / mu
+            e = (ex * ex + ey * ey).sqrt()
+            
+            # Calculate semi-major axis
+            a = -mu / (Decimal('2') * specific_energy)
+            
+            # Draw orbit path
+            if e < 1:  # Double check it's not hyperbolic
+                points = []
+                # Get parent body position for orbit centering
+                parent_x, parent_y = self.get_absolute_position(self.rocket.parent_body)
+                
+                # Calculate orbit orientation angle from eccentricity vector
+                orbit_angle = Decimal(str(math.atan2(float(ey), float(ex))))
+                if h < 0:  # If angular momentum is negative, flip the orbit
+                    orbit_angle += PI
+                
+                # Calculate points along the orbit
+                for theta in range(0, 360, 1):  # Every 5 degrees
+                    theta_rad = math.radians(theta)
+                    # Convert e to float for math.cos
+                    e_float = float(e)
+                    # Orbit equation in polar form
+                    r_factor = float(a * (1 - e * e))
+                    orbit_r = r_factor / (1 + e_float * math.cos(theta_rad))
+                    
+                    # Convert polar to cartesian coordinates, then rotate by orbit_angle
+                    base_x = orbit_r * math.cos(theta_rad)
+                    base_y = orbit_r * math.sin(theta_rad)
+                    
+                    # Rotate point by orbit_angle
+                    orbit_angle_float = float(orbit_angle)
+                    rotated_x = base_x * math.cos(orbit_angle_float) - base_y * math.sin(orbit_angle_float)
+                    rotated_y = base_x * math.sin(orbit_angle_float) + base_y * math.cos(orbit_angle_float)
+                    
+                    # Add parent body's position to center the orbit correctly
+                    world_x = Decimal(str(rotated_x)) + parent_x
+                    world_y = Decimal(str(rotated_y)) + parent_y
+                    
+                    # Convert to screen coordinates
+                    screen_point = self.world_to_screen(world_x, world_y)
+                    points.append(screen_point)
+                
+                # Draw the orbit path
+                if len(points) > 2:
+                    pygame.draw.lines(self.screen, (100, 150, 255), True, points, 1)
         
         # Calculate rocket orientation from rotation angle
         angle = float(self.rocket.rotation)
