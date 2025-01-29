@@ -48,7 +48,7 @@ class Visualizer:
             fuel_consumption=40,  # 40 kg/s fuel consumption
         )
         self.track_rocket = False
-        self.rotation_speed = Decimal('0.5')  # Radians per key press
+        self.rotation_speed = Decimal('2.5')  # Radians per key press
     
     def world_to_screen(self, x: Decimal, y: Decimal) -> tuple[int, int]:
         """Convert world coordinates (meters) to screen coordinates (pixels)"""

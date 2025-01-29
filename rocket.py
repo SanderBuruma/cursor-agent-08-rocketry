@@ -160,6 +160,8 @@ class Rocket:
     def update(self, dt: Decimal) -> None:
         """
         Update rocket state based on forces and time step.
+        When not thrusting, updates position using orbital parameters.
+        When thrusting, uses direct force integration.
         
         Args:
             dt: Time step in seconds
@@ -167,29 +169,99 @@ class Rocket:
         # Update fuel if engines are firing
         if self.thrust_fraction > 0:
             self.update_fuel(dt)
-        
-        # Calculate gravitational acceleration
-        r = self.distance_from_parent_km * Decimal('1000')  # Convert to meters
-        if r > 0:
-            g = self.local_gravity
-            g_x = -g * self.x / r  # Gravity points toward parent body
-            g_y = -g * self.y / r
             
-            # Apply gravity
-            self.dx += g_x * dt
-            self.dy += g_y * dt
+            # Calculate gravitational acceleration
+            r = self.distance_from_parent_km * Decimal('1000')  # Convert to meters
+            if r > 0:
+                g = self.local_gravity
+                g_x = -g * self.x / r  # Gravity points toward parent body
+                g_y = -g * self.y / r
+                
+                # Apply gravity
+                self.dx += g_x * dt
+                self.dy += g_y * dt
+                
+                # Apply thrust if engines are firing and we have fuel
+                if self.thrust_fraction > 0 and self.fuel_mass > 0:
+                    thrust_acceleration = self.current_thrust / self.total_mass
+                    # Apply thrust in direction of rotation
+                    rot_float = float(self.rotation)
+                    self.dx += thrust_acceleration * Decimal(str(math.cos(rot_float))) * dt
+                    self.dy += thrust_acceleration * Decimal(str(math.sin(rot_float))) * dt
             
-            # Apply thrust if engines are firing and we have fuel
-            if self.thrust_fraction > 0 and self.fuel_mass > 0:
-                thrust_acceleration = self.current_thrust / self.total_mass
-                # Apply thrust in direction of rotation
-                rot_float = float(self.rotation)
-                self.dx += thrust_acceleration * Decimal(str(math.cos(rot_float))) * dt
-                self.dy += thrust_acceleration * Decimal(str(math.sin(rot_float))) * dt
-        
-        # Update position
-        self.x += self.dx * dt
-        self.y += self.dy * dt
+            # Update position
+            self.x += self.dx * dt
+            self.y += self.dy * dt
+            
+        else:
+            # When not thrusting, update position using orbital parameters
+            # Calculate orbital elements
+            r = (self.x * self.x + self.y * self.y).sqrt()
+            v = self.speed
+            mu = self.parent_body.G * self.parent_body.mass
+            
+            # Calculate specific angular momentum and energy
+            h = self.x * self.dy - self.y * self.dx
+            specific_energy = (v * v / Decimal('2')) - mu / r
+            
+            if specific_energy < 0:  # Only for bound orbits
+                # Calculate eccentricity vector
+                ex = ((v * v - mu / r) * self.x - (self.x * self.dx + self.y * self.dy) * self.dx) / mu
+                ey = ((v * v - mu / r) * self.y - (self.x * self.dx + self.y * self.dy) * self.dy) / mu
+                e = (ex * ex + ey * ey).sqrt()
+                
+                # Calculate semi-major axis
+                a = -mu / (Decimal('2') * specific_energy)
+                
+                if e < 1:  # Elliptical orbit
+                    # Calculate orbit orientation from eccentricity vector
+                    orbit_angle = Decimal(str(math.atan2(float(ey), float(ex))))
+                    if h < 0:  # If angular momentum is negative, flip the orbit
+                        orbit_angle += PI
+                    
+                    # Calculate current true anomaly relative to eccentricity vector
+                    pos_angle = Decimal(str(math.atan2(float(self.y), float(self.x))))
+                    true_anomaly = pos_angle - orbit_angle
+                    
+                    # Update true anomaly based on orbital motion
+                    # Mean motion (radians per second)
+                    n = (mu / (a * a * a)).sqrt()
+                    # Update true anomaly (approximation for small time steps)
+                    true_anomaly += n * dt
+                    
+                    # Calculate new position
+                    p = a * (1 - e * e)  # Semi-latus rectum
+                    new_r = p / (1 + e * Decimal(str(math.cos(float(true_anomaly)))))
+                    
+                    # Convert to cartesian coordinates with proper orientation
+                    base_x = new_r * Decimal(str(math.cos(float(true_anomaly))))
+                    base_y = new_r * Decimal(str(math.sin(float(true_anomaly))))
+                    
+                    # Rotate by orbit angle
+                    orbit_angle_float = float(orbit_angle)
+                    self.x = base_x * Decimal(str(math.cos(orbit_angle_float))) - base_y * Decimal(str(math.sin(orbit_angle_float)))
+                    self.y = base_x * Decimal(str(math.sin(orbit_angle_float))) + base_y * Decimal(str(math.cos(orbit_angle_float)))
+                    
+                    # Calculate velocity components in orbit frame
+                    v_r = (mu / p).sqrt() * e * Decimal(str(math.sin(float(true_anomaly))))  # Radial velocity
+                    v_theta = (mu / p).sqrt() * (1 + e * Decimal(str(math.cos(float(true_anomaly)))))  # Tangential velocity
+                    
+                    # Rotate velocity components to world frame
+                    base_dx = v_r * Decimal(str(math.cos(float(true_anomaly)))) - v_theta * Decimal(str(math.sin(float(true_anomaly))))
+                    base_dy = v_r * Decimal(str(math.sin(float(true_anomaly)))) + v_theta * Decimal(str(math.cos(float(true_anomaly))))
+                    
+                    self.dx = base_dx * Decimal(str(math.cos(orbit_angle_float))) - base_dy * Decimal(str(math.sin(orbit_angle_float)))
+                    self.dy = base_dx * Decimal(str(math.sin(orbit_angle_float))) + base_dy * Decimal(str(math.cos(orbit_angle_float)))
+                else:
+                    # For hyperbolic trajectories or when orbital elements can't be calculated,
+                    # fall back to direct integration
+                    g = self.local_gravity
+                    g_x = -g * self.x / r
+                    g_y = -g * self.y / r
+                    self.dx += g_x * dt
+                    self.dy += g_y * dt
+                    self.x += self.dx * dt
+                    self.y += self.dy * dt
         
         # Check for SOI transitions
         self.check_soi_transition(dt)
